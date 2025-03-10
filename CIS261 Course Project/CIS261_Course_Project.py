@@ -7,10 +7,13 @@ from datetime import datetime
 def get_date_range():
     while True:
         try:
-            from_date + input("Enter FROM date (mm/dd/yyyy): ")
-            to_date = input("Enter TO date (mm/dd/yyyy): ")
-            datetime.strptime(from_date, "%m%d%Y")
-            datetime.strptime(to_date, "%m%d%Y")
+            from_date = input("Enter FROM date (mm/dd/yyyy): ").strip()
+            to_date = input("Enter TO date (mm/dd/yyyy): ").strip()
+            from_date_obj = datetime.strptime(from_date, "%m%d%Y")
+            to_date_obj = datetime.strptime(to_date, "%m%d%Y")
+            if from_date_obj > to_date_obj:
+                print("FROM date cannot be later than TO date. Please try again.")
+                continue
             return from_date, to_date
         except ValueError:
             print("Invalid date format! Please enter the date in mm/dd/yyyy format.")
@@ -35,12 +38,16 @@ def get_hourly_rate():
 def get_tax_rate():
     while True:
         try:
-            return float(input("Enter tax rate (as a percentage): ").strip()) / 100
+            tax_rate = float(input("Enter tax rate (as a percentage): ").strip()) / 100
+            if tax_rate < 0 or tax_rate > 1:
+                print("Invalid input! Please enter a tax rate between 0 and 100.")
+                continue
+            return tax_rate
         except ValueError:
             print("Invalid input! Please input a valid number.")
         
-def calculate_pay(total_hours, hourly_rate, tax_rate):
-    gross_pay = total_hours * hourly_rate
+def calculate_pay(hours, rate, tax_rate):
+    gross_pay = hours * rate
     income_tax = gross_pay * tax_rate
     net_pay = gross_pay - income_tax
     return gross_pay, income_tax, net_pay
@@ -57,40 +64,42 @@ def display_employee_info(from_date, to_date, name, hours, rate, gross_pay, tax_
     print(f"Income Tax: ${income_tax:.2f}")
     print(f"Net Pay: ${net_pay:.2f}\n")
 
-def display_total(total_employees, total_hours, total_gross, total_tax, total_net):
+def display_totals(totals):
     print("\nPayroll Summary")
-    print(f"Total Employees: {total_employees}")
-    print(f"Total Hours Worked: {total_hours:.2f}")
-    print(f"Total Gross Pay: ${total_gross:.2f}")
-    print(f"Total Tax Paid: ${total_tax:.2f}")
-    print(F"Total Net Pay: ${total_net:.2f}")
+    print(f"Total Employees: {totals['total_employees']}")
+    print(f"Total Hours Worked: {totals['total_hours']}")
+    print(f"Total Gross Pay: ${totals['total_gross']:.2f}")
+    print(f"Total Tax Paid: ${totals['total_tax']:.2f}")
+    print(F"Total Net Pay: ${totals['total_net']:.2f}")
     
 def main():
-    total_employees = 0
-    total_hours = 0
-    total_gross = 0
-    total_tax = 0
-    total_net = 0
+    employees = []
+    totals = {"total_employees": 0, "total_hours": 0, "total_gross": 0, "total_tax": 0, "total_net": 0}
 
     while True:
+        from_date, to_date = get_date_range()
         name = get_employee_name()
         if name.lower() == 'end':
             break
         
         hours = get_total_hours()
         rate = get_hourly_rate()
-        tax = get_tax_rate()
+        tax_rate = get_tax_rate()
         
-        gross, tax_amount, net = calculate_pay(hours, rate, tax)
-        display_employee_pay(name, hours, rate, gross, tax, tax_amount, net)
+        employees.append([from_date, to_date, name, hours, rate, tax_rate])
         
-        total_employees += 1
-        total_hours += hours
-        total_gross += gross
-        total_tax += tax_amount
-        total_net += net
+    for emp in employees:
+        from_date, to_date, name, hours, rate, tax_rate = emp
+        gross_pay, income_tax, net_pay = calculate_pay(hours, rate, tax_rate)
+        display_employee_info(from_date, to_date, name, hours, rate, gross_pay, tax_rate, income_tax, net_pay)
         
-    display_total(total_employees, total_hours, total_gross, total_tax, total_net)
+        totals['total_employees'] += 1
+        totals['total_hours'] += hours
+        totals['total_gross'] += gross_pay
+        totals['total_tax'] += income_tax
+        totals['total_net'] += net_pay
+        
+    display_totals(totals)
     
 if __name__ == "__main__":
     main()

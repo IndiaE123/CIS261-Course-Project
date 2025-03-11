@@ -7,14 +7,9 @@ from datetime import datetime
 def get_date_range():
     while True:
         try:
-            from_date = input("Enter FROM date (mm/dd/yyyy): ").strip()
-            to_date = input("Enter TO date (mm/dd/yyyy): ").strip()
-            from_date_obj = datetime.strptime(from_date, "%m%d%Y")
-            to_date_obj = datetime.strptime(to_date, "%m%d%Y")
-            if from_date_obj > to_date_obj:
-                print("FROM date cannot be later than TO date. Please try again.")
-                continue
-            return from_date, to_date
+            from_date = input("Enter FROM date (mm/dd/yyyy): ")
+            datetime.strptime(from_date, "%m/%d/%Y")
+            return from_date
         except ValueError:
             print("Invalid date format! Please enter the date in mm/dd/yyyy format.")
 
@@ -51,6 +46,9 @@ def calculate_pay(hours, rate, tax_rate):
     income_tax = gross_pay * tax_rate
     net_pay = gross_pay - income_tax
     return gross_pay, income_tax, net_pay
+def write_employee_data(from_date, to_date, name, hours, rate, tax_rate):
+    with open("employee_data.txt", "a") as file:
+        file.write(f"{from_date}|{to_date}|{name}|{hours}|{rate}|{tax_rate}\n")
 
 def display_employee_info(from_date, to_date, name, hours, rate, gross_pay, tax_rate, income_tax, net_pay):
     print("\nEmployee Payroll Information")
@@ -71,13 +69,46 @@ def display_totals(totals):
     print(f"Total Gross Pay: ${totals['total_gross']:.2f}")
     print(f"Total Tax Paid: ${totals['total_tax']:.2f}")
     print(F"Total Net Pay: ${totals['total_net']:.2f}")
+
+def read_employee_data():
+        try:
+            with open("employee_data.txt", "r") as file:
+                return [line.strip().split('|') for line in file.readlines()]
+        except FileNotFoundError:
+            return []
+        
+def generate_report():
+    from_date = input("Enter FROM date to filter records (mm/dd/yyyy) or 'All': ")
+    if from_date.lower() != "all":
+        try:
+            datetime.strptime(from_date, "%m/%d/%Y")
+        except ValueError:
+            print("Invalid date format! Please enter the date in mm/dd/yyyy format.")
+
+    records = read_employee_data()
+    totals = {"total_employees": 0, "total_hours": 0, "total_gross": 0, "total_tax": 0, "total_net": 0}
+    
+    for record in records:
+        rec_from_date, rec_to_date, name, hours, rate, tax_rate = record
+        hours, rate, tax_rate = float(hours), float(rate), float(tax_rate)
+
+        if from_date.lower() == "all" or rec_from_date == from_date:
+            gross_pay, income_tax, net_pay = calculate_pay(hours, rate, tax_rate)
+            display_employee_info(rec_from_date, rec_to_date, name, hours, rate, gross_pay, tax_rate, income_tax, net_pay)
+            
+            totals['total_employees'] += 1
+            totals['total_hours'] += hours
+            totals['total_gross'] += gross_pay
+            totals['total_tax'] += income_tax
+            totals['total_net'] += net_pay
+            
+    display_totals(totals)
     
 def main():
-    employees = []
-    totals = {"total_employees": 0, "total_hours": 0, "total_gross": 0, "total_tax": 0, "total_net": 0}
-
+   
     while True:
-        from_date, to_date = get_date_range()
+        from_date = get_date_range()
+        to_date = get_date_range
         name = get_employee_name()
         if name.lower() == 'end':
             break
@@ -86,20 +117,8 @@ def main():
         rate = get_hourly_rate()
         tax_rate = get_tax_rate()
         
-        employees.append([from_date, to_date, name, hours, rate, tax_rate])
-        
-    for emp in employees:
-        from_date, to_date, name, hours, rate, tax_rate = emp
-        gross_pay, income_tax, net_pay = calculate_pay(hours, rate, tax_rate)
-        display_employee_info(from_date, to_date, name, hours, rate, gross_pay, tax_rate, income_tax, net_pay)
-        
-        totals['total_employees'] += 1
-        totals['total_hours'] += hours
-        totals['total_gross'] += gross_pay
-        totals['total_tax'] += income_tax
-        totals['total_net'] += net_pay
-        
-    display_totals(totals)
-    
+        write_employee_data(from_date, to_date, name, hours, rate, tax_rate)
+    generate_report()
+
 if __name__ == "__main__":
     main()
